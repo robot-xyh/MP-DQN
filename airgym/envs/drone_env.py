@@ -24,9 +24,18 @@ class AirSimDroneEnv(AirSimEnv):
         }
 
         self.drone = airsim.MultirotorClient(ip=ip_address)
-        self.action_space = spaces.Tuple(spaces.Discrete(7),
-                                        spaces.Box(-1,1,(3,))
-            )
+        self.action_space = spaces.Tuple((spaces.Discrete(8),
+                                        
+                                          spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32),
+                                          spaces.Box(low=-1, high=1, shape=(3,),dtype=np.float32),
+                                          spaces.Box(low=-1, high=1, shape=(3,),dtype=np.float32),
+                                          spaces.Box(low=-1, high=1, shape=(3,),dtype=np.float32),
+                                          spaces.Box(low=-1, high=1, shape=(3,),dtype=np.float32),
+                                          spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32),
+                                          spaces.Box(low=-1, high=1, shape=(3,),dtype=np.float32),
+                                          spaces.Box(low=-1, high=1, shape=(3,),dtype=np.float32)
+                                          ))
+        print(self.action_space,"self.action_space")    
         self._setup_flight()
 
         self.image_request = airsim.ImageRequest(
@@ -42,8 +51,8 @@ class AirSimDroneEnv(AirSimEnv):
         self.drone.armDisarm(True)
 
         # Set home position and velocity
-        self.drone.moveToPositionAsync(-0.55265, -31.9786, -19.0225, 10).join()
-        self.drone.moveByVelocityAsync(1, -0.67, -0.8, 5).join()
+        #self.drone.moveToPositionAsync(-0.55265, -31.9786, -19.0225, 10).join()
+        #self.drone.moveByVelocityAsync(1, -0.67, -0.8, 5).join()
 
     def transform_obs(self, responses):
         img1d = np.array(responses[0].image_data_float, dtype=np.float)
@@ -55,8 +64,8 @@ class AirSimDroneEnv(AirSimEnv):
         image = Image.fromarray(img2d)
         im_final = np.array(image.resize((84, 84)).convert("L"))
 
-        return im_final.reshape([84, 84, 1])
-
+        return im_final.reshape(7056)
+        #return np.zeros([84,84,1])
     def _get_obs(self):
         responses = self.drone.simGetImages([self.image_request])
         image = self.transform_obs(responses)
@@ -149,17 +158,17 @@ class AirSimDroneEnv(AirSimEnv):
         return self._get_obs()
 
     def interpret_action(self, action):
-        if action == 0:
+        if action[0] == 0:
             quad_offset = (self.step_length, 0, 0)
-        elif action == 1:
+        elif action[0] == 1:
             quad_offset = (0, self.step_length, 0)
-        elif action == 2:
+        elif action[0] == 2:
             quad_offset = (0, 0, self.step_length)
-        elif action == 3:
+        elif action[0] == 3:
             quad_offset = (-self.step_length, 0, 0)
-        elif action == 4:
+        elif action[0] == 4:
             quad_offset = (0, -self.step_length, 0)
-        elif action == 5:
+        elif action[0] == 5:
             quad_offset = (0, 0, -self.step_length)
         else:
             quad_offset = (0, 0, 0)

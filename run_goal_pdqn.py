@@ -3,22 +3,22 @@ import click
 import time
 import numpy as np
 import gym
-import gym_goal
-from gym_goal.envs.config import GOAL_WIDTH, PITCH_LENGTH, PITCH_WIDTH
+
+#from gym_goal.envs.config import GOAL_WIDTH, PITCH_LENGTH, PITCH_WIDTH
 from gym.wrappers import Monitor
 from common import ClickPythonLiteralOption
-from common.wrappers import ScaledParameterisedActionWrapper
-from common.goal_domain import GoalFlattenedActionWrapper, GoalObservationWrapper
-from common.wrappers import ScaledStateWrapper
+#from common.wrappers import ScaledParameterisedActionWrapper
+#from common.goal_domain import GoalFlattenedActionWrapper, GoalObservationWrapper
+#from common.wrappers import ScaledStateWrapper
 from agents.pdqn import PDQNAgent
 from agents.pdqn_split import SplitPDQNAgent
 from agents.pdqn_multipass import MultiPassPDQNAgent
 from torch.utils.tensorboard import SummaryWriter
 import airgym
-writer = SummaryWriter(r"C:\Users\admin\ray_results")
+writer = SummaryWriter(r"C:\Users\pc\Documents\PDQN_airsim")
 
 def pad_action(act, act_param):
-    params = [np.zeros((2,)), np.zeros((1,)), np.zeros((1,))]
+    params = [np.zeros((3,)), np.zeros((3,)), np.zeros((3,))]
     params[act] = act_param
     return (act, params)
 
@@ -90,9 +90,9 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
     env = gym.make("airgym:airsim-drone-sample-v0",
                 ip_address="127.0.0.1",
                 step_length=0.25,
-                image_shape=(84, 84, 1),)
+                image_shape=(7056,),)
     #env = GoalObservationWrapper(env)
-
+    
     if save_freq > 0 and save_dir:
         save_dir = os.path.join(save_dir, title + "{}".format(str(seed)))
         os.makedirs(save_dir, exist_ok=True)
@@ -103,7 +103,7 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
         assert render_freq > 0
         vidir = os.path.join(save_dir, "frames")
         os.makedirs(vidir, exist_ok=True)
-
+    """
     if scale_actions:
         kickto_weights = np.array([[-0.375, 0.5, 0, 0.0625, 0],
                                    [0, 0, 0.8333333333333333333, 0, 0.111111111111111111111111]])
@@ -116,18 +116,19 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
         kickto_weights = np.array([[2.5, 1, 0, xfear, 0], [0, 0, 1 - caution, 0, yfear]])
         shoot_goal_left_weights = np.array([GOAL_WIDTH / 2 - 1, 0])
         shoot_goal_right_weights = np.array([-GOAL_WIDTH / 2 + 1, 0])
-
-    initial_weights = np.zeros((4, 17))
+    
+    
     initial_weights[0, [10, 11, 14, 15]] = kickto_weights[0, 1:]
     initial_weights[1, [10, 11, 14, 15]] = kickto_weights[1, 1:]
     initial_weights[2, 16] = shoot_goal_left_weights[1]
     initial_weights[3, 16] = shoot_goal_right_weights[1]
-
+    
     initial_bias = np.zeros((4,))
     initial_bias[0] = kickto_weights[0, 0]
     initial_bias[1] = kickto_weights[1, 0]
     initial_bias[2] = shoot_goal_left_weights[0]
     initial_bias[3] = shoot_goal_right_weights[0]
+    """
     """
     if not scale_actions:
         # rescale initial action-parameters for a scaled state space
@@ -146,16 +147,16 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
     env = Monitor(env, directory=os.path.join(dir, str(seed)), video_callable=False, write_upon_reset=False, force=True)
     env.seed(seed)
     np.random.seed(seed)
-    """
+    
     assert not (split and multipass)
     agent_class = PDQNAgent
     if split:
         agent_class = SplitPDQNAgent
     elif multipass:
         agent_class = MultiPassPDQNAgent
-    """
+    
     agent = agent_class(
-                       observation_space=env.observation_space.spaces[0], action_space=env.action_space,
+                       observation_space=env.observation_space, action_space=env.action_space,
                        batch_size=batch_size,
                        learning_rate_actor=learning_rate_actor,  # 0.0001
                        learning_rate_actor_param=learning_rate_actor_param,  # 0.001
@@ -179,9 +180,9 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
                                            'squashing_function': False},
                        zero_index_gradients=zero_index_gradients,
                        seed=seed)
-
-    if initialise_params:
-        agent.set_action_parameter_passthrough_weights(initial_weights, initial_bias)
+    #initial_weights = np.zeros((4, 17))
+    #if initialise_params:
+    #    agent.set_action_parameter_passthrough_weights(initial_weights, initial_bias)
     print(agent)
     max_steps = 150
     total_reward = 0.

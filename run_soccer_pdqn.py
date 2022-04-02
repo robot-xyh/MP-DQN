@@ -4,10 +4,12 @@ import time
 from common import ClickPythonLiteralOption
 from common.soccer_domain import SoccerScaledParameterisedActionWrapper
 import gym
-import gym_soccer
+
 from gym.wrappers import Monitor
 import numpy as np
-
+from torch.utils.tensorboard import SummaryWriter
+import airgym
+writer = SummaryWriter(r"C:\Users\pc\Documents\PDQN_airsim")
 
 def pad_action(act, act_param):
     action = np.zeros((7,))
@@ -24,6 +26,10 @@ def pad_action(act, act_param):
         raise ValueError("Unknown action index '{}'".format(act))
     return action
 
+def pad_action(act, act_param):
+    params = [np.zeros((3,)),np.zeros((3,)),np.zeros((3,)),np.zeros((3,)),np.zeros((3,)), np.zeros((3,)), np.zeros((3,))]
+    params[act] = act_param
+    return (act, params)
 
 def evaluate(env, agent, episodes=10):
     returns = []
@@ -52,11 +58,10 @@ def evaluate(env, agent, episodes=10):
 
 def make_env(scale_actions):
     # env = gym.make('SoccerEmptyGoal-v0')
-    env = gym.make('SoccerScoreGoal-v0')
-    # env = ScaledStateWrapper(env)  # already scaled
-    if scale_actions:
-        env = SoccerScaledParameterisedActionWrapper(env)
-    return env
+    env = gym.make("airgym:airsim-drone-sample-v0",
+                ip_address="127.0.0.1",
+                step_length=0.25,
+                image_shape=(7056,),)
 
 
 @click.command()
@@ -72,7 +77,7 @@ def make_env(scale_actions):
               type=int)
 @click.option('--use-ornstein-noise', default=False,
               help='Use Ornstein noise instead of epsilon-greedy with uniform random exploration.', type=bool)
-@click.option('--replay-memory-size', default=500000, help='Replay memory size in transitions.', type=int) # 500000
+@click.option('--replay-memory-size', default=5000, help='Replay memory size in transitions.', type=int) # 500000
 @click.option('--epsilon-steps', default=1000, help='Number of episodes over which to linearly anneal epsilon.', type=int)
 @click.option('--epsilon-final', default=0.1, help='Final epsilon value.', type=float)
 @click.option('--tau-actor', default=0.001, help='Soft target network update averaging factor.', type=float)
@@ -106,6 +111,10 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
 
     env = make_env(scale_actions)
     dir = os.path.join(save_dir, title)
+    env = gym.make("airgym:airsim-drone-sample-v0",
+                ip_address="127.0.0.1",
+                step_length=0.25,
+                image_shape=(7056,),)
     env = Monitor(env, directory=os.path.join(dir, str(seed)), video_callable=False, write_upon_reset=False, force=True)
     # env.seed(seed)  # doesn't work on HFO
     np.random.seed(seed)
@@ -167,6 +176,7 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
             agent.save_models(os.path.join(save_dir, str(i)))
         info = {'status': "NOT_SET"}
         state = env.reset()
+        print(state.shape,"state")
         state = np.array(state, dtype=np.float32, copy=False)
 
         act, act_param, all_action_parameters = agent.act(state)

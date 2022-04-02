@@ -80,6 +80,8 @@ class ParamActor(nn.Module):
         # create layers
         self.layers = nn.ModuleList()
         inputSize = self.state_size
+        #inputSize = 7056
+        print(inputSize,"--------")
         lastHiddenLayerSize = inputSize
         if hidden_layers is not None:
             nh = len(hidden_layers)
@@ -114,7 +116,9 @@ class ParamActor(nn.Module):
         self.action_parameters_passthrough_layer.bias.requires_grad = False
 
     def forward(self, state):
+        #x = state.view(1,7056)
         x = state
+        print(x.shape)
         negative_slope = 0.01
         num_hidden_layers = len(self.layers)
         for i in range(0, num_hidden_layers):
@@ -175,7 +179,10 @@ class PDQNAgent(Agent):
         super(PDQNAgent, self).__init__(observation_space, action_space)
         self.device = torch.device(device)
         self.num_actions = self.action_space.spaces[0].n
+        print("self.num_actions",self.num_actions)
+        #print("self.action_space",self.action_space.spaces[1].shape(0))
         self.action_parameter_sizes = np.array([self.action_space.spaces[i].shape[0] for i in range(1,self.num_actions+1)])
+        print("self.action_parameter_sizes",self.action_parameter_sizes)
         self.action_parameter_size = int(self.action_parameter_sizes.sum())
         self.action_max = torch.from_numpy(np.ones((self.num_actions,))).float().to(device)
         self.action_min = -self.action_max.detach()
@@ -334,6 +341,7 @@ class PDQNAgent(Agent):
             # add noise only to parameters of chosen action
             all_action_parameters = all_action_parameters.cpu().data.numpy()
             offset = np.array([self.action_parameter_sizes[i] for i in range(action)], dtype=int).sum()
+            print(offset,"offset")
             if self.use_ornstein_noise and self.noise is not None:
                 all_action_parameters[offset:offset + self.action_parameter_sizes[action]] += self.noise.sample()[offset:offset + self.action_parameter_sizes[action]]
             action_parameters = all_action_parameters[offset:offset+self.action_parameter_sizes[action]]
@@ -390,7 +398,7 @@ class PDQNAgent(Agent):
     def step(self, state, action, reward, next_state, next_action, terminal, time_steps=1):
         act, all_action_parameters = action
         self._step += 1
-
+        print([act],all_action_parameters,"------")
         # self._add_sample(state, np.concatenate((all_actions.data, all_action_parameters.data)).ravel(), reward, next_state, terminal)
         self._add_sample(state, np.concatenate(([act],all_action_parameters)).ravel(), reward, next_state, np.concatenate(([next_action[0]],next_action[1])).ravel(), terminal=terminal)
         if self._step >= self.batch_size and self._step >= self.initial_memory_threshold:
