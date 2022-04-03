@@ -64,7 +64,7 @@ class AirSimDroneEnv(AirSimEnv):
         image = Image.fromarray(img2d)
         im_final = np.array(image.resize((84, 84)).convert("L"))
 
-        return im_final.reshape(7056)
+        return im_final.reshape([1,84,84])
         #return np.zeros([84,84,1])
     def _get_obs(self):
         responses = self.drone.simGetImages([self.image_request])
