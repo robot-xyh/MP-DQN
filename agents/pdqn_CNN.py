@@ -37,7 +37,7 @@ class QActor(nn.Module):
         
         self.cnnlayers = nn.ModuleList()
         
-        self.conv1 = nn.Conv2d(in_channels, 84, kernel_size=4, stride=4)
+        self.conv1 = nn.Conv2d(1, 84, kernel_size=4, stride=4)
         self.conv2 = nn.Conv2d(84, 42, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(42, 21, kernel_size=2, stride=2)
         self.fc4 = nn.Linear(21 * 4 * 4, 168)
@@ -70,7 +70,7 @@ class QActor(nn.Module):
         
         
         
-        cnnx = state
+        cnnx = state[np.newaxis,:,:,:]
         cnnx = F.relu(self.conv1(cnnx))
         cnnx = F.relu(self.conv2(cnnx))
         cnnx = F.relu(self.conv3(cnnx))
@@ -110,7 +110,7 @@ class ParamActor(nn.Module):
                 self.layers.append(nn.Linear(hidden_layers[i - 1], hidden_layers[i]))
             lastHiddenLayerSize = hidden_layers[nh - 1]
         
-        self.conv1 = nn.Conv2d(in_channels, 84, kernel_size=4, stride=4)
+        self.conv1 = nn.Conv2d(1, 84, kernel_size=4, stride=4)
         self.conv2 = nn.Conv2d(84, 42, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(42, 21, kernel_size=2, stride=2)
         self.fc4 = nn.Linear(21 * 4 * 4, 168)
@@ -143,8 +143,9 @@ class ParamActor(nn.Module):
 
     def forward(self, state):
         #x = state.view(1,7056)
-        x = state
+        x = state[np.newaxis,:,:,:]
         print(x.shape)
+        """
         negative_slope = 0.01
         num_hidden_layers = len(self.layers)
         for i in range(0, num_hidden_layers):
@@ -154,11 +155,15 @@ class ParamActor(nn.Module):
                 x = F.leaky_relu(self.layers[i](x), negative_slope)
             else:
                 raise ValueError("Unknown activation function "+str(self.activation))
-        
-        cnnx = state
+        """
+        cnnx = state[np.newaxis,:,:,:]
+        print(cnnx.shape)
         cnnx = F.relu(self.conv1(cnnx))
+        print(cnnx.shape,"++++++++")
         cnnx = F.relu(self.conv2(cnnx))
+        print(cnnx.shape,"++++++++")
         cnnx = F.relu(self.conv3(cnnx))
+        print(cnnx.shape,"++++++++")
         cnnx = cnnx.view(cnnx.size(0), -1)
         cnnx = F.relu(self.fc4(cnnx))
         
@@ -441,6 +446,7 @@ class PDQNAgent(Agent):
 
     def _add_sample(self, state, action, reward, next_state, next_action, terminal):
         assert len(action) == 1 + self.action_parameter_size
+        print(state.shape,"000000000000000")
         self.replay_memory.append(state, action, reward, next_state, terminal=terminal)
 
     def _optimize_td_loss(self):
