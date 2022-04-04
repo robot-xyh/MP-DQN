@@ -4,7 +4,7 @@ import numpy as np
 import math
 import time
 from argparse import ArgumentParser
-
+import cv2
 import gym
 from gym import spaces
 from airgym.envs.airsim_env import AirSimEnv
@@ -15,7 +15,9 @@ class AirSimDroneEnv(AirSimEnv):
         super().__init__(image_shape)
         self.step_length = step_length
         self.image_shape = image_shape
-
+        self.drone = airsim.MultirotorClient()
+        client = airsim.VehicleClient()
+        client.confirmConnection()
         self.state = {
             "position": np.zeros(3),
             "collision": False,
@@ -157,44 +159,11 @@ class AirSimDroneEnv(AirSimEnv):
         self.dist = self.dis_goal
         self.dist_prev = self.dist
         
-        import airsim.utils        
-        my_pos=self.drone.getMultirotorState().kinematics_estimated.position
-        #欧拉角
-        u, v, w = airsim.utils.to_eularian_angles(self.drone.simGetCameraInfo("0").pose.orientation)        
-        rotate_y = np.array([[1.,0.,0.],
-                            [0.,np.cos(v),-np.sin(v)],
-                            [0.,np.sin(v),np.cos(v)]
-        ])
-        
-        rotate_z = np.array([[np.cos(-u),0.,np.sin(-u)],
-                            [0.,1.,0.],
-                            [-np.sin(-u),0.,np.cos(-u)]
-        ])
-        rotate_x = np.array([[np.cos(w),-np.sin(w),0.],
-                            [np.sin(w),np.cos(w),0.],
-                            [0.,0.,1.]
-        ])
-        #旋转矩阵
-        ang = np.matmul(rotate_z,rotate_y)
-        ang = np.matmul(ang,rotate_x)
-        #self.o为初始向量(1,0,0)，得到云台转动之后的方向向量
-        self.o = np.array([[1.],[0.],[0.]])
-        dire = np.matmul(ang,self.o)
 
-        q0 = self.drone.simGetCameraInfo("0").pose.orientation
-        q1 = np.array([q0.x_val,q0.y_val,q0.z_val,q0.w_val])
-        ang1 = quaternion_to_rotation_matrix(q1)
-        dire1 = np.matmul(ang1,self.o)
-        #目标与无人机的方向向量
-        my_pos_array= np.array([my_pos.x_val,my_pos.y_val,my_pos.z_val])
-        dis=(self.goal-my_pos_array)
-        #求出两个向量的余弦
-        self.sc=(self.get_cos_similar(dire1.T,dis))
-        self.prev_sc = self.sc
 
 
     def _get_obs(self):
-                import airsim
+        import airsim
         from PIL import Image
 
         # Update our (internal) state.
@@ -293,7 +262,7 @@ class AirSimDroneEnv(AirSimEnv):
         self._set_actions(action)
         self._set_g_actions(action)
         # Get next observation, rewards, and dones..
-        ob = self._get_obs()
+        obs = self._get_obs()
         #print(obs,"obs")
         reward, done = self._get_rewards_and_dones()
 
@@ -344,7 +313,7 @@ class AirSimDroneEnv(AirSimEnv):
             quad_offset = (0, 0, 0)
         elif action[0] == 7: 
             g_quad_offset = g_quad_offset
-        return quad_offset g_quad_offset
+        return quad_offset, g_quad_offset
     
     def _set_g_actions(self,action):
         """Sends a valid gym action to the AirSim drone."""
@@ -352,7 +321,7 @@ class AirSimDroneEnv(AirSimEnv):
         import airsim
         action = action
         #print("action[1]",action)
-        _,g_quad_offset = interpret_action(action)
+        _,g_quad_offset = self.interpret_action(action)
         u, v, w = airsim.utils.to_eularian_angles(self.drone.simGetCameraInfo("0").pose.orientation)
         u = g_quad_offset[0]*0.3+u
         if u > 0.:
@@ -438,7 +407,7 @@ class AirSimDroneEnv(AirSimEnv):
         import airsim
         u, v, w = airsim.utils.to_eularian_angles(self.drone.simGetCameraInfo("0").pose.orientation)       
         
-        client = airsim.MultirotorClient(ip=self.ip, port=self.port)
+        client = airsim.MultirotorClient()
         #client.confirmConnection()
         # set camera name and image type to request images and detections
         camera_name = "0"

@@ -4,7 +4,8 @@ import time
 from common import ClickPythonLiteralOption
 from common.soccer_domain import SoccerScaledParameterisedActionWrapper
 import gym
-
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 from gym.wrappers import Monitor
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
@@ -114,7 +115,7 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
     env = gym.make("airgym:airsim-drone-sample-v0",
                 ip_address="127.0.0.1",
                 step_length=0.25,
-                image_shape=(1,84,84),)
+                image_shape=(7,84,84),)
     env = Monitor(env, directory=os.path.join(dir, str(seed)), video_callable=False, write_upon_reset=False, force=True)
     # env.seed(seed)  # doesn't work on HFO
     np.random.seed(seed)

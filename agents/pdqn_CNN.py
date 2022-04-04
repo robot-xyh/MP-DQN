@@ -37,7 +37,7 @@ class QActor(nn.Module):
         
         self.cnnlayers = nn.ModuleList()
         
-        self.conv1 = nn.Conv2d(1, 84, kernel_size=4, stride=4)
+        self.conv1 = nn.Conv2d(7, 84, kernel_size=4, stride=4)
         self.conv2 = nn.Conv2d(84, 42, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(42, 21, kernel_size=2, stride=2)
         self.fc4 = nn.Linear(21 * 4 * 4, 168)
@@ -113,13 +113,13 @@ class ParamActor(nn.Module):
                 self.layers.append(nn.Linear(hidden_layers[i - 1], hidden_layers[i]))
             lastHiddenLayerSize = hidden_layers[nh - 1]
         
-        self.conv1 = nn.Conv2d(1, 84, kernel_size=4, stride=4)
+        self.conv1 = nn.Conv2d(7, 84, kernel_size=4, stride=4)
         self.conv2 = nn.Conv2d(84, 42, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(42, 21, kernel_size=2, stride=2)
         self.fc4 = nn.Linear(21 * 4 * 4, 168)
         
         self.action_parameters_output_layer = nn.Linear(168, self.action_parameter_size)
-        self.action_parameters_passthrough_layer = nn.Linear(84*84, self.action_parameter_size)
+        self.action_parameters_passthrough_layer = nn.Linear(84*84*7, self.action_parameter_size)
 
         # initialise layer weights
         for i in range(0, len(self.layers)):
