@@ -173,7 +173,7 @@ class ParamActor(nn.Module):
         cnnx = F.relu(self.fc4(cnnx))
         
         action_params = self.action_parameters_output_layer(cnnx)
-        action_params += self.action_parameters_passthrough_layer(state.view(-1,7056))
+        action_params += self.action_parameters_passthrough_layer(state.view(-1,49392))
 
         if self.squashing_function:
             assert False  # scaling not implemented yet
