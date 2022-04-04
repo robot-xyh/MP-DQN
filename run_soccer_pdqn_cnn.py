@@ -10,9 +10,9 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import airgym
 writer = SummaryWriter(r"C:\Users\pc\Documents\PDQN_airsim")
-
+"""
 def pad_action(act, act_param):
-    action = np.zeros((7,))
+    action = np.zeros((8,))
     action[0] = act
     if act == 0:
         action[[1,2]] = act_param
@@ -25,7 +25,7 @@ def pad_action(act, act_param):
     else:
         raise ValueError("Unknown action index '{}'".format(act))
     return action
-
+"""
 def pad_action(act, act_param):
     params = [np.zeros((3,)),np.zeros((3,)),np.zeros((3,)),np.zeros((3,)),np.zeros((3,)),np.zeros((3,)), np.zeros((3,)), np.zeros((3,))]
     params[act] = act_param
@@ -73,13 +73,13 @@ def make_env(scale_actions):
 @click.option('--update-ratio', default=0.1, help='Ratio of updates to samples.', type=float)
 @click.option('--inverting-gradients', default=True,
               help='Use inverting gradients scheme instead of squashing function.', type=bool)
-@click.option('--initial-memory-threshold', default=1000, help='Number of transitions required to start learning.',
+@click.option('--initial-memory-threshold', default=32, help='Number of transitions required to start learning.',
               type=int)
 @click.option('--use-ornstein-noise', default=False,
               help='Use Ornstein noise instead of epsilon-greedy with uniform random exploration.', type=bool)
-@click.option('--replay-memory-size', default=5000, help='Replay memory size in transitions.', type=int) # 500000
-@click.option('--epsilon-steps', default=1000, help='Number of episodes over which to linearly anneal epsilon.', type=int)
-@click.option('--epsilon-final', default=0.1, help='Final epsilon value.', type=float)
+@click.option('--replay-memory-size', default=50, help='Replay memory size in transitions.', type=int) # 500000
+@click.option('--epsilon-steps', default=1, help='Number of episodes over which to linearly anneal epsilon.', type=int)
+@click.option('--epsilon-final', default=0.01, help='Final epsilon value.', type=float)
 @click.option('--tau-actor', default=0.001, help='Soft target network update averaging factor.', type=float)
 @click.option('--tau-actor-param', default=0.001, help='Soft target network update averaging factor.', type=float)  # 0.001
 @click.option('--learning-rate-actor', default=0.001, help="Actor network learning rate.", type=float)

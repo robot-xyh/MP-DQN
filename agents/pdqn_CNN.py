@@ -41,7 +41,7 @@ class QActor(nn.Module):
         self.conv2 = nn.Conv2d(84, 42, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(42, 21, kernel_size=2, stride=2)
         self.fc4 = nn.Linear(21 * 4 * 4, 168)
-        self.fc5 = nn.Linear(168+self.action_size, self.action_size)
+        self.fc5 = nn.Linear(168+action_parameter_size, self.action_size)
         
         
         # initialise layer weights
@@ -57,8 +57,9 @@ class QActor(nn.Module):
     def forward(self, state, action_parameters):
         # implement forward
         negative_slope = 0.01
-
+        
         x = action_parameters
+        """
         num_layers = len(self.layers)
         for i in range(0, num_layers - 1):
             if self.activation == "relu":
@@ -67,16 +68,18 @@ class QActor(nn.Module):
                 x = F.leaky_relu(self.layers[i](x), negative_slope)
             else:
                 raise ValueError("Unknown activation function "+str(self.activation))
+        """
         
         
-        
-        cnnx = state[np.newaxis,:,:,:]
+        #cnnx = state[np.newaxis,:,:,:]
+        cnnx = state
         cnnx = F.relu(self.conv1(cnnx))
         cnnx = F.relu(self.conv2(cnnx))
         cnnx = F.relu(self.conv3(cnnx))
         cnnx = cnnx.view(cnnx.size(0), -1)
         cnnx = F.relu(self.fc4(cnnx))
         #return self.fc5(cnnx)
+        print(x.shape,cnnx.shape,"#####################")
         xcnnx = torch.cat([x,cnnx], dim=-1)
         Q = self.fc5(xcnnx)
         return Q
@@ -143,7 +146,8 @@ class ParamActor(nn.Module):
 
     def forward(self, state):
         #x = state.view(1,7056)
-        x = state[np.newaxis,:,:,:]
+        #x = state[np.newaxis,:,:,:]
+        x = state
         print(x.shape)
         """
         negative_slope = 0.01
@@ -156,7 +160,8 @@ class ParamActor(nn.Module):
             else:
                 raise ValueError("Unknown activation function "+str(self.activation))
         """
-        cnnx = state[np.newaxis,:,:,:]
+        #cnnx = state[np.newaxis,:,:,:]
+        cnnx = state
         print(cnnx.shape)
         cnnx = F.relu(self.conv1(cnnx))
         print(cnnx.shape,"++++++++")
@@ -168,7 +173,7 @@ class ParamActor(nn.Module):
         cnnx = F.relu(self.fc4(cnnx))
         
         action_params = self.action_parameters_output_layer(cnnx)
-        action_params += self.action_parameters_passthrough_layer(state.view(1,7056))
+        action_params += self.action_parameters_passthrough_layer(state.view(-1,7056))
 
         if self.squashing_function:
             assert False  # scaling not implemented yet
@@ -362,8 +367,9 @@ class PDQNAgent(Agent):
     def act(self, state):
         with torch.no_grad():
             state = torch.from_numpy(state).to(self.device)
-            all_action_parameters = self.actor_param.forward(state)
-
+            all_action_parameters = self.actor_param.forward(state.unsqueeze(0)).squeeze(0)
+            print(all_action_parameters,"all_action_parameters%%%%%%%")
+            #??
             # Hausknecht and Stone [2016] use epsilon greedy actions with uniform random action-parameter exploration
             rnd = self.np_random.uniform()
             if rnd < self.epsilon:
@@ -437,9 +443,13 @@ class PDQNAgent(Agent):
     def step(self, state, action, reward, next_state, next_action, terminal, time_steps=1):
         act, all_action_parameters = action
         self._step += 1
-        print([act],all_action_parameters,"------")
-        # self._add_sample(state, np.concatenate((all_actions.data, all_action_parameters.data)).ravel(), reward, next_state, terminal)
+        print("state, np.concatenate(([act],all_action_parameters[0])).ravel(), reward, next_state, np.concatenate(([next_action[0]],next_action[1])).ravel()")
+        
         self._add_sample(state, np.concatenate(([act],all_action_parameters)).ravel(), reward, next_state, np.concatenate(([next_action[0]],next_action[1])).ravel(), terminal=terminal)
+        print([act],all_action_parameters.shape,"------")
+        #print(next_action[0].shape,next_action[1].shape)
+        #self._add_sample(state, np.concatenate(([act],all_action_parameters)).ravel(), reward, next_state, np.concatenate(([next_action[0]],next_action[1])).ravel(), terminal=terminal)
+        
         if self._step >= self.batch_size and self._step >= self.initial_memory_threshold:
             self._optimize_td_loss()
             self.updates += 1
