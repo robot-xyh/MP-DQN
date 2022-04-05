@@ -10,7 +10,7 @@ from gym.wrappers import Monitor
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import airgym
-writer = SummaryWriter(r"C:\Users\pc\Documents\PDQN_airsim")
+writer = SummaryWriter(r"C:\Users\admin\ray_results")
 """
 def pad_action(act, act_param):
     action = np.zeros((8,))
@@ -171,8 +171,15 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
     timesteps = []
     goals = []
     start_time_train = time.time()
-
+    
+    infogs =[]
+    infoms =[]
+    infows = []
     for i in range(episodes):
+        
+        infogs.append([])
+        infoms.append([])
+        infows.append([])
         if save_freq > 0 and save_dir and i % save_freq == 0:
             agent.save_models(os.path.join(save_dir, str(i)))
         state = env.reset()
@@ -182,13 +189,17 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
 
         act, act_param, all_action_parameters = agent.act(state)
         action = pad_action(act, act_param)
-
+        
         episode_reward = 0.
         agent.start_episode()
         for j in range(max_steps):
 
             ret = env.step(action)
-            next_state, reward, terminal, _ = ret
+            next_state, reward, terminal, info = ret
+            infoms[i].append(info["mv_win"])
+            infogs[i].append(info["gimbal_win"])
+            infows[i].append(info["win"])
+            
             next_state = np.array(next_state, dtype=np.float32, copy=False)
 
             next_act, next_act_param, next_all_action_parameters = agent.act(next_state)
@@ -211,6 +222,13 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
         returns.append(episode_reward)
         total_reward += episode_reward
         if i % 100 == 0:
+            writer.add_scalar('reward', episode_reward,i)   
+            writer.add_scalar('length', env.get_episode_lengths()[i],i)
+            
+            writer.add_scalar('info', env.get_episode_infos()[i]["win"],i)
+            writer.add_scalar('infog', max(infogs[i]),i)
+            writer.add_scalar('infog', max(infoms[i]),i)
+            writer.add_scalar('infog', max(infows[i]),i)
             print('{0:5s} R:{1:.4f} r100:{2:.4f}'.format(str(i), total_reward / (i + 1), np.array(returns[-100:]).mean()))
     end_time = time.time()
     print("Took %.2f seconds" % (end_time - start_time))

@@ -18,12 +18,7 @@ class AirSimDroneEnv(AirSimEnv):
         self.drone = airsim.MultirotorClient()
         client = airsim.VehicleClient()
         client.confirmConnection()
-        self.state = {
-            "position": np.zeros(3),
-            "collision": False,
-            "prev_position": np.zeros(3),
-            "kk":13,
-        }
+        
         client.simRunConsoleCommand("t.MaxFPS 10")
         """
         self.image_request = airsim.ImageRequest(
@@ -259,6 +254,7 @@ class AirSimDroneEnv(AirSimEnv):
 
 
     def step(self, action):
+        print(action)
         self._set_actions(action)
         self._set_g_actions(action)
         # Get next observation, rewards, and dones..
@@ -312,7 +308,7 @@ class AirSimDroneEnv(AirSimEnv):
         elif action[0] == 6:
             quad_offset = (0, 0, 0)
         elif action[0] == 7: 
-            g_quad_offset = g_quad_offset
+            g_quad_offset = action[1][7]
         return quad_offset, g_quad_offset
     
     def _set_g_actions(self,action):
@@ -323,7 +319,7 @@ class AirSimDroneEnv(AirSimEnv):
         #print("action[1]",action)
         _,g_quad_offset = self.interpret_action(action)
         u, v, w = airsim.utils.to_eularian_angles(self.drone.simGetCameraInfo("0").pose.orientation)
-        u = g_quad_offset[0]*0.3+u
+        u = g_quad_offset[0]*3+u
         if u > 0.:
             u = 0.
         if u < -3.14/2.5:
@@ -481,7 +477,7 @@ class AirSimDroneEnv(AirSimEnv):
             reward = -20
         if self.state["position"].z_val<-120:  
             reward = -20
-        #print(reward,self.dist,reward_d)
+        print(reward,self.dist,reward_d)
         if reward <= -19:
             done = 1
         if reward >= 39:

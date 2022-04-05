@@ -15,7 +15,7 @@ from agents.pdqn_split import SplitPDQNAgent
 from agents.pdqn_multipass import MultiPassPDQNAgent
 from torch.utils.tensorboard import SummaryWriter
 import airgym
-writer = SummaryWriter(r"C:\Users\pc\Documents\PDQN_airsim")
+writer = SummaryWriter(r"C:\Users\admin\ray_results")
 
 def pad_action(act, act_param):
     params = [np.zeros((3,)), np.zeros((3,)), np.zeros((3,))]
@@ -189,6 +189,7 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
     returns = []
     start_time = time.time()
     video_index = 0
+    infoks =[]
     for i in range(episodes):
         if save_freq > 0 and save_dir and i % save_freq == 0:
             agent.save_models(os.path.join(save_dir, str(i)))
@@ -203,11 +204,11 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
 
         episode_reward = 0.
         agent.start_episode()
-        infoks =[]
+        
         for j in range(max_steps):
             ret = env.step(action)
             (next_state, steps), reward, terminal, info = ret
-            infoks.append(info["kk"])
+            infoks.append(info[i]["kk"])
             next_state = np.array(next_state, dtype=np.float32, copy=False)
 
             next_act, next_act_param, next_all_action_parameters = agent.act(next_state)
@@ -227,7 +228,7 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
             if terminal:
                 break
         agent.end_episode()
-        infok = max(infoks)
+        
         if save_frames:
             video_index = env.unwrapped.save_render_states(vidir, title, video_index)
 
@@ -240,7 +241,7 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
             writer.add_scalar('length', env.get_episode_lengths()[i],i)
             print((env.get_episode_infos())[i])
             writer.add_scalar('info', env.get_episode_infos()[i]["kk"],i)
-            writer.add_scalar('infok', infok,i)
+            writer.add_scalar('infok', max(infok[i]),i)
     end_time = time.time()
     print("Training took %.2f seconds" % (end_time - start_time))
     env.close()
