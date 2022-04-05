@@ -79,7 +79,6 @@ class QActor(nn.Module):
         cnnx = cnnx.view(cnnx.size(0), -1)
         cnnx = F.relu(self.fc4(cnnx))
         #return self.fc5(cnnx)
-        print(x.shape,cnnx.shape,"#####################")
         xcnnx = torch.cat([x,cnnx], dim=-1)
         Q = self.fc5(xcnnx)
         return Q
@@ -104,7 +103,6 @@ class ParamActor(nn.Module):
         self.layers = nn.ModuleList()
         inputSize = self.state_size
         #inputSize = 7056
-        print(inputSize,"--------")
         lastHiddenLayerSize = inputSize
         if hidden_layers is not None:
             nh = len(hidden_layers)
@@ -148,7 +146,6 @@ class ParamActor(nn.Module):
         #x = state.view(1,7056)
         #x = state[np.newaxis,:,:,:]
         x = state
-        print(x.shape)
         """
         negative_slope = 0.01
         num_hidden_layers = len(self.layers)
@@ -162,13 +159,13 @@ class ParamActor(nn.Module):
         """
         #cnnx = state[np.newaxis,:,:,:]
         cnnx = state
-        print(cnnx.shape)
+        
         cnnx = F.relu(self.conv1(cnnx))
-        print(cnnx.shape,"++++++++")
+        
         cnnx = F.relu(self.conv2(cnnx))
-        print(cnnx.shape,"++++++++")
+        
         cnnx = F.relu(self.conv3(cnnx))
-        print(cnnx.shape,"++++++++")
+        
         cnnx = cnnx.view(cnnx.size(0), -1)
         cnnx = F.relu(self.fc4(cnnx))
         
@@ -223,10 +220,10 @@ class PDQNAgent(Agent):
         super(PDQNAgent, self).__init__(observation_space, action_space)
         self.device = torch.device(device)
         self.num_actions = self.action_space.spaces[0].n
-        print("self.num_actions",self.num_actions)
+        
         #print("self.action_space",self.action_space.spaces[1].shape(0))
         self.action_parameter_sizes = np.array([self.action_space.spaces[i].shape[0] for i in range(1,self.num_actions+1)])
-        print("self.action_parameter_sizes",self.action_parameter_sizes)
+        
         self.action_parameter_size = int(self.action_parameter_sizes.sum())
         self.action_max = torch.from_numpy(np.ones((self.num_actions,))).float().to(device)
         self.action_min = -self.action_max.detach()
@@ -273,7 +270,7 @@ class PDQNAgent(Agent):
         self.use_ornstein_noise = use_ornstein_noise
         self.noise = OrnsteinUhlenbeckActionNoise(self.action_parameter_size, random_machine=self.np_random, mu=0., theta=0.15, sigma=0.0001) #, theta=0.01, sigma=0.01)
 
-        print(self.num_actions+self.action_parameter_size)
+        
         self.replay_memory = Memory(replay_memory_size, observation_space.shape, (1+self.action_parameter_size,), next_actions=False)
         self.actor = actor_class(self.observation_space.shape[0], self.num_actions, self.action_parameter_size, **actor_kwargs).to(device)
         self.actor_target = actor_class(self.observation_space.shape[0], self.num_actions, self.action_parameter_size, **actor_kwargs).to(device)
@@ -318,12 +315,12 @@ class PDQNAgent(Agent):
     def set_action_parameter_passthrough_weights(self, initial_weights, initial_bias=None):
         passthrough_layer = self.actor_param.action_parameters_passthrough_layer
         print(initial_weights.shape)
-        print(passthrough_layer.weight.data.size())
+        
         assert initial_weights.shape == passthrough_layer.weight.data.size()
         passthrough_layer.weight.data = torch.Tensor(initial_weights).float().to(self.device)
         if initial_bias is not None:
-            print(initial_bias.shape)
-            print(passthrough_layer.bias.data.size())
+            
+            
             assert initial_bias.shape == passthrough_layer.bias.data.size()
             passthrough_layer.bias.data = torch.Tensor(initial_bias).float().to(self.device)
         passthrough_layer.requires_grad = False
@@ -368,7 +365,7 @@ class PDQNAgent(Agent):
         with torch.no_grad():
             state = torch.from_numpy(state).to(self.device)
             all_action_parameters = self.actor_param.forward(state.unsqueeze(0)).squeeze(0)
-            print(all_action_parameters,"all_action_parameters%%%%%%%")
+            
             #??
             # Hausknecht and Stone [2016] use epsilon greedy actions with uniform random action-parameter exploration
             rnd = self.np_random.uniform()
@@ -386,7 +383,7 @@ class PDQNAgent(Agent):
             # add noise only to parameters of chosen action
             all_action_parameters = all_action_parameters.cpu().data.numpy()
             offset = np.array([self.action_parameter_sizes[i] for i in range(action)], dtype=int).sum()
-            print(offset,"offset")
+            
             if self.use_ornstein_noise and self.noise is not None:
                 all_action_parameters[offset:offset + self.action_parameter_sizes[action]] += self.noise.sample()[offset:offset + self.action_parameter_sizes[action]]
             action_parameters = all_action_parameters[offset:offset+self.action_parameter_sizes[action]]
@@ -443,10 +440,9 @@ class PDQNAgent(Agent):
     def step(self, state, action, reward, next_state, next_action, terminal, time_steps=1):
         act, all_action_parameters = action
         self._step += 1
-        print("state, np.concatenate(([act],all_action_parameters[0])).ravel(), reward, next_state, np.concatenate(([next_action[0]],next_action[1])).ravel()")
-        
+        self._step += 1
         self._add_sample(state, np.concatenate(([act],all_action_parameters)).ravel(), reward, next_state, np.concatenate(([next_action[0]],next_action[1])).ravel(), terminal=terminal)
-        print([act],all_action_parameters.shape,"------")
+        
         #print(next_action[0].shape,next_action[1].shape)
         #self._add_sample(state, np.concatenate(([act],all_action_parameters)).ravel(), reward, next_state, np.concatenate(([next_action[0]],next_action[1])).ravel(), terminal=terminal)
         
@@ -456,7 +452,7 @@ class PDQNAgent(Agent):
 
     def _add_sample(self, state, action, reward, next_state, next_action, terminal):
         assert len(action) == 1 + self.action_parameter_size
-        print(state.shape,"000000000000000")
+        
         self.replay_memory.append(state, action, reward, next_state, terminal=terminal)
 
     def _optimize_td_loss(self):
@@ -562,3 +558,5 @@ class PDQNAgent(Agent):
         self.actor.load_state_dict(torch.load(prefix + '_actor.pt', map_location='cpu'))
         self.actor_param.load_state_dict(torch.load(prefix + '_actor_param.pt', map_location='cpu'))
         print('Models loaded successfully')
+
+
