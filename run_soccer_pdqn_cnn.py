@@ -74,18 +74,18 @@ def make_env(scale_actions):
 @click.option('--update-ratio', default=0.1, help='Ratio of updates to samples.', type=float)
 @click.option('--inverting-gradients', default=True,
               help='Use inverting gradients scheme instead of squashing function.', type=bool)
-@click.option('--initial-memory-threshold', default=32, help='Number of transitions required to start learning.',
+@click.option('--initial-memory-threshold', default=1000, help='Number of transitions required to start learning.',
               type=int)
 @click.option('--use-ornstein-noise', default=False,
               help='Use Ornstein noise instead of epsilon-greedy with uniform random exploration.', type=bool)
-@click.option('--replay-memory-size', default=50, help='Replay memory size in transitions.', type=int) # 500000
-@click.option('--epsilon-steps', default=1, help='Number of episodes over which to linearly anneal epsilon.', type=int)
+@click.option('--replay-memory-size', default=5000, help='Replay memory size in transitions.', type=int) # 500000
+@click.option('--epsilon-steps', default=10000, help='Number of episodes over which to linearly anneal epsilon.', type=int)
 @click.option('--epsilon-final', default=0.01, help='Final epsilon value.', type=float)
 @click.option('--tau-actor', default=0.001, help='Soft target network update averaging factor.', type=float)
 @click.option('--tau-actor-param', default=0.001, help='Soft target network update averaging factor.', type=float)  # 0.001
 @click.option('--learning-rate-actor', default=0.001, help="Actor network learning rate.", type=float)
 @click.option('--learning-rate-actor-param', default=0.00001, help="Critic network learning rate.", type=float)
-@click.option('--clip-grad', default=1., help="Gradient clipping.", type=float)  # 1 better than 10.
+@click.option('--clip-grad', default=10., help="Gradient clipping.", type=float)  # 1 better than 10.
 @click.option('--beta', default=0.2, help='Averaging factor for on-policy and off-policy targets.', type=float)  # 0.5
 @click.option('--scale-actions', default=True, help="Scale actions.", type=bool)
 @click.option('--split', default=False, help='Separate action-parameter inputs.', type=bool)
