@@ -8,7 +8,7 @@ import cv2
 import gym
 from gym import spaces
 from airgym.envs.airsim_env import AirSimEnv
-
+import pprint
 
 class AirSimDroneEnv(AirSimEnv):
     def __init__(self, ip_address, step_length, image_shape):
@@ -54,7 +54,7 @@ class AirSimDroneEnv(AirSimEnv):
         self.o = np.array([[1.],[0.],[0.]])
         
         self.goal = np.array([
-                        105,-10,-50
+                        0,0,0
                         ])
         my_pos=self.drone.getMultirotorState().kinematics_estimated.position
         quad_pt = np.array(list((my_pos.x_val, my_pos.y_val, my_pos.z_val)))
@@ -66,11 +66,11 @@ class AirSimDroneEnv(AirSimEnv):
         
         """
         self.goal = np.array([
-                        self.drone.simGetObjectPose("OrangeBall_Blueprint").position.x_val, 
-                        self.drone.simGetObjectPose("OrangeBall_Blueprint").position.y_val,
-                        self.drone.simGetObjectPose("OrangeBall_Blueprint").position.z_val
+                        self.drone.simGetObjectPose("Cone_5").position.x_val, 
+                        self.drone.simGetObjectPose("Cone_5").position.y_val,
+                        self.drone.simGetObjectPose("Cone_5").position.z_val
                         ])
-        print(self.drone.simGetObjectPose("OrangeBall_Blueprint"))
+        print(self.drone.simGetObjectPose("Cone_5"))
         """
         self.win  = 0
         self.gimbal_win = 0
@@ -98,6 +98,7 @@ class AirSimDroneEnv(AirSimEnv):
         self.gim_step = 0
         self.mv_step = 0
         self.drone = airsim.MultirotorClient(ip=ip_address)
+        
         self.action_space = spaces.Tuple((spaces.Discrete(8),
                                         
                                           spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32),
@@ -110,6 +111,17 @@ class AirSimDroneEnv(AirSimEnv):
                                           spaces.Box(low=-1, high=1, shape=(3,),dtype=np.float32)
                                           ))
         print(self.action_space,"self.action_space")    
+        self.state["pose"] = self.drone_state.kinematics_estimated
+        
+
+        self.state["prev_position"] = self.state["position"]
+        self.state["position"] = self.drone_state.kinematics_estimated.position
+        self.state["velocity"] = self.drone_state.kinematics_estimated.linear_velocity
+        
+        self.state["dist"] = self.dist
+        self.state["win"] = self.win
+        self.state["mv_win"] = self.mv_win
+        self.state["gimbal_win"] = self.gimbal_win
         self._setup_flight()
 
         self.image_request = airsim.ImageRequest(
@@ -122,6 +134,7 @@ class AirSimDroneEnv(AirSimEnv):
     def _setup_flight(self):
         import airsim
         self.drone.reset()
+        time.sleep(1)
         self.drone.enableApiControl(True)
         self.drone.armDisarm(True)
         self.drone.takeoffAsync().join()
@@ -146,13 +159,17 @@ class AirSimDroneEnv(AirSimEnv):
         self.drone.simSetCameraPose("4", self.camera_pose)
         
         self.goal = np.array([
-                        105,-10,-50
+                        0,0,0
                         ])
         my_pos=self.drone.getMultirotorState().kinematics_estimated.position
         quad_pt = np.array(list((my_pos.x_val, my_pos.y_val, my_pos.z_val)))
         self.dis_goal = np.linalg.norm((quad_pt - self.goal))
         self.dist = self.dis_goal
         self.dist_prev = self.dist
+        self.drone_state = self.drone.getMultirotorState()
+        collision = self.drone.simGetCollisionInfo().has_collided
+        
+        
         
 
 
@@ -164,11 +181,11 @@ class AirSimDroneEnv(AirSimEnv):
         # Update our (internal) state.
         self.drone_state = self.drone.getMultirotorState()
         collision = self.drone.simGetCollisionInfo().has_collided
-        self.state["prev_pose"] = self.state["pose"]
+        #self.state["prev_pose"] = self.state["pose"]
         self.state["pose"] = self.drone_state.kinematics_estimated
         
 
-        self.state["prev_position"] = self.state["position"]
+        
         self.state["position"] = self.drone_state.kinematics_estimated.position
         self.state["velocity"] = self.drone_state.kinematics_estimated.linear_velocity
         self.state["collision"] = collision
@@ -254,14 +271,22 @@ class AirSimDroneEnv(AirSimEnv):
 
 
     def step(self, action):
-        print(action)
+        #print(action)
         self._set_actions(action)
         self._set_g_actions(action)
         # Get next observation, rewards, and dones..
         obs = self._get_obs()
         #print(obs,"obs")
         reward, done = self._get_rewards_and_dones()
-
+        #
+        self.state = {
+            
+            "dist": self.dist,
+            "angle":self.s_t,
+            "win": self.win,
+            "gimbal_win":self.gimbal_win,
+            "mv_win": self.mv_win
+        }
         return obs, reward, done, self.state
 
     def reset(self):
@@ -271,7 +296,7 @@ class AirSimDroneEnv(AirSimEnv):
         self.drone.reset()
         self.drone.enableApiControl(True)
         self.drone.armDisarm(True)
-        time.sleep(0.1)
+        time.sleep(1)
         self.camera_pose=airsim.Pose(airsim.Vector3r(0, 0, 0), airsim.to_quaternion(0, 0, 0))
         self.drone.simSetCameraPose("0", self.camera_pose)
         self.camera_pose=airsim.Pose(airsim.Vector3r(0, 0, 0), airsim.to_quaternion(0, 0, 0))
@@ -288,6 +313,7 @@ class AirSimDroneEnv(AirSimEnv):
         self.win = 0
         self.gimbal_win = 0
         self.mv_win = 0
+        time.sleep(1)
         return self._get_obs()
 
     def interpret_action(self, action):
@@ -358,7 +384,7 @@ class AirSimDroneEnv(AirSimEnv):
         thresh_dist = 2
         #pts = np.array([35, 33, -3])
         self.goal = np.array([
-                        105,-10,-50
+                        0,0,0
                         ])
         reward_d = -1
         self.mv_win = 0 
@@ -369,7 +395,7 @@ class AirSimDroneEnv(AirSimEnv):
         else:
             quad_pt = np.array(list((self.state["position"].x_val, self.state["position"].y_val, self.state["position"].z_val)))
             self.disgoal = np.array([
-                        105,-10,-50
+                        0,0,0
                         ])
             self.dist = np.linalg.norm(quad_pt - self.disgoal)
             #print(self.state["position"])
@@ -412,7 +438,7 @@ class AirSimDroneEnv(AirSimEnv):
         # set detection radius in [cm]
         client.simSetDetectionFilterRadius(camera_name, image_type, 200 * 100) 
         # add desired object name to detect in wild card/regex format
-        client.simAddDetectionFilterMeshName(camera_name, image_type, "OrangeBall_Blueprint")
+        client.simAddDetectionFilterMeshName(camera_name, image_type, "Cone_5")
         rawImage = self.drone.simGetImage(camera_name, image_type)
         if not rawImage:
             print("+++++++++++++++++++++++++++++++++++++")
@@ -446,9 +472,9 @@ class AirSimDroneEnv(AirSimEnv):
         
         self.state["angle"] = self.s_t
     
-        if self.dist <=10 :
+        if self.dist <=20 :
         
-            if self.s_t < 0.1:
+            if self.s_t < 0.45:
                 reward_s_t = 20 
                 self.gimbal_win = 1
             else:
@@ -468,9 +494,9 @@ class AirSimDroneEnv(AirSimEnv):
    
         
         if self.distance < 0.2:
-            reward = -20
+            reward = -21
         if self.state["collision"]:
-            reward = -20
+            reward = -22
         if self.state["position"].x_val<-20 or self.state["position"].x_val > 150:
             reward = -20
         if self.state["position"].y_val< -100 or self.state["position"].y_val > 100:

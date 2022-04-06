@@ -10,7 +10,7 @@ from gym.wrappers import Monitor
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import airgym
-writer = SummaryWriter(r"C:\Users\admin\ray_results")
+writer = SummaryWriter()
 """
 def pad_action(act, act_param):
     action = np.zeros((8,))
@@ -221,14 +221,15 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
 
         returns.append(episode_reward)
         total_reward += episode_reward
-        if i % 100 == 0:
+        if i % 10 == 0:
             writer.add_scalar('reward', episode_reward,i)   
             writer.add_scalar('length', env.get_episode_lengths()[i],i)
             
-            writer.add_scalar('info', env.get_episode_infos()[i]["win"],i)
+            #writer.add_scalar('info', env.get_episode_infos()[i]["win"],i)
             writer.add_scalar('infog', max(infogs[i]),i)
-            writer.add_scalar('infog', max(infoms[i]),i)
-            writer.add_scalar('infog', max(infows[i]),i)
+            writer.add_scalar('infom', max(infoms[i]),i)
+            writer.add_scalar('infow', max(infows[i]),i)
+            writer.add_scalar('infowmean', np.array(infows[i]).mean(),i)
             print('{0:5s} R:{1:.4f} r100:{2:.4f}'.format(str(i), total_reward / (i + 1), np.array(returns[-100:]).mean()))
     end_time = time.time()
     print("Took %.2f seconds" % (end_time - start_time))
