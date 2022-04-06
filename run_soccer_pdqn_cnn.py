@@ -175,6 +175,10 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
     infogs =[]
     infoms =[]
     infows = []
+    
+    meaninfogs =[]
+    meaninfoms =[]
+    meaninfows = []
     for i in range(episodes):
         
         infogs.append([])
@@ -196,8 +200,8 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
 
             ret = env.step(action)
             next_state, reward, terminal, info = ret
-            infoms[i].append(info["mv_win"])
-            infogs[i].append(info["gimbal_win"])
+            infoms[i].append(info["dist"])
+            infogs[i].append(info["angle"])
             infows[i].append(info["win"])
             
             next_state = np.array(next_state, dtype=np.float32, copy=False)
@@ -216,20 +220,23 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
             if terminal:
                 break
         agent.end_episode()
-
         
-
+        meaninfogs.append(  min(infogs[i]))
+        meaninfoms.append(  min(infoms[i]))
+        meaninfows.append(  max(infows[i]))
+        
+        
         returns.append(episode_reward)
         total_reward += episode_reward
-        if i % 10 == 0:
-            writer.add_scalar('reward', episode_reward,i)   
-            writer.add_scalar('length', env.get_episode_lengths()[i],i)
+        if i % 100 == 0:
+            writer.add_scalar('reward', episode_reward,j)   
+            writer.add_scalar('length', env.get_episode_lengths()[i],j)
             
             #writer.add_scalar('info', env.get_episode_infos()[i]["win"],i)
-            writer.add_scalar('infog', max(infogs[i]),i)
-            writer.add_scalar('infom', max(infoms[i]),i)
-            writer.add_scalar('infow', max(infows[i]),i)
-            writer.add_scalar('infowmean', np.array(infows[i]).mean(),i)
+            writer.add_scalar('infog', np.array(meaninfogs[-100:]),j)
+            writer.add_scalar('infom', np.array(meaninfoms[-100:]),j)
+            writer.add_scalar('infow', np.array(meaninfows[-100:]),j)
+            #writer.add_scalar('infowmean', np.array(infows[i]).mean(),i)
             print('{0:5s} R:{1:.4f} r100:{2:.4f}'.format(str(i), total_reward / (i + 1), np.array(returns[-100:]).mean()))
     end_time = time.time()
     print("Took %.2f seconds" % (end_time - start_time))
