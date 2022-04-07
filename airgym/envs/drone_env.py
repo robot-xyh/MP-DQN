@@ -9,7 +9,7 @@ import gym
 from gym import spaces
 from airgym.envs.airsim_env import AirSimEnv
 import pprint
-
+import os
 class AirSimDroneEnv(AirSimEnv):
     def __init__(self, ip_address, step_length, image_shape):
         super().__init__(image_shape)

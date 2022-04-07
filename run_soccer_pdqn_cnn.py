@@ -179,6 +179,7 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
     meaninfogs =[]
     meaninfoms =[]
     meaninfows = []
+    k = 0 
     for i in range(episodes):
         
         infogs.append([])
@@ -199,6 +200,7 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
         for j in range(max_steps):
 
             ret = env.step(action)
+            k +=1
             next_state, reward, terminal, info = ret
             infoms[i].append(info["dist"])
             infogs[i].append(info["angle"])
@@ -229,13 +231,13 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
         returns.append(episode_reward)
         total_reward += episode_reward
         if i % 100 == 0:
-            writer.add_scalar('reward', episode_reward,j)   
+            writer.add_scalar('reward', episode_reward,k)   
             writer.add_scalar('length', env.get_episode_lengths()[i],j)
             
             #writer.add_scalar('info', env.get_episode_infos()[i]["win"],i)
-            writer.add_scalar('infog', np.array(meaninfogs[-100:]),j)
-            writer.add_scalar('infom', np.array(meaninfoms[-100:]),j)
-            writer.add_scalar('infow', np.array(meaninfows[-100:]),j)
+            writer.add_scalar('infog', np.array(meaninfogs[-100:]).mean(),k)
+            writer.add_scalar('infom', np.array(meaninfoms[-100:]).mean(),k)
+            writer.add_scalar('infow', np.array(meaninfows[-100:]).mean(),k)
             #writer.add_scalar('infowmean', np.array(infows[i]).mean(),i)
             print('{0:5s} R:{1:.4f} r100:{2:.4f}'.format(str(i), total_reward / (i + 1), np.array(returns[-100:]).mean()))
     end_time = time.time()
