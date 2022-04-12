@@ -69,7 +69,7 @@ def make_env(scale_actions):
 @click.option('--seed', default=0, help='Random seed.', type=int)
 @click.option('--episodes', default=20000, help='Number of epsiodes.', type=int)
 @click.option('--evaluation-episodes', default=1000, help='Episodes over which to evaluate after training.', type=int)
-@click.option('--batch-size', default=32, help='Minibatch size.', type=int)
+@click.option('--batch-size', default=128, help='Minibatch size.', type=int)
 @click.option('--gamma', default=0.99, help='Discount factor.', type=float)
 @click.option('--update-ratio', default=0.1, help='Ratio of updates to samples.', type=float)
 @click.option('--inverting-gradients', default=True,
@@ -78,7 +78,7 @@ def make_env(scale_actions):
               type=int)
 @click.option('--use-ornstein-noise', default=False,
               help='Use Ornstein noise instead of epsilon-greedy with uniform random exploration.', type=bool)
-@click.option('--replay-memory-size', default=5000, help='Replay memory size in transitions.', type=int) # 500000
+@click.option('--replay-memory-size', default=10000, help='Replay memory size in transitions.', type=int) # 500000
 @click.option('--epsilon-steps', default=10000, help='Number of episodes over which to linearly anneal epsilon.', type=int)
 @click.option('--epsilon-final', default=0.01, help='Final epsilon value.', type=float)
 @click.option('--tau-actor', default=0.001, help='Soft target network update averaging factor.', type=float)
