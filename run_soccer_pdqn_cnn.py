@@ -232,7 +232,7 @@ def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_t
         total_reward += episode_reward
         if i % 100 == 0:
             writer.add_scalar('reward', episode_reward,k)   
-            writer.add_scalar('length', env.get_episode_lengths()[i],j)
+            writer.add_scalar('length', env.get_episode_lengths()[i],k)
             
             #writer.add_scalar('info', env.get_episode_infos()[i]["win"],i)
             writer.add_scalar('infog', np.array(meaninfogs[-100:]).mean(),k)
